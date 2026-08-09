@@ -38,7 +38,7 @@ build/libai_meta.dylib: $(LIB_OBJS) | build
 	$(CC) -dynamiclib -o $@ $(LIB_OBJS) $(LDFLAGS)
 
 src/%.o: src/%.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c -o $@ $<
 
 cli: build/ai_meta
 build/ai_meta: tools/ai_meta_cli.c build/libai_meta.a | build
