@@ -109,4 +109,4 @@ cc -Iinclude -o examples/basic examples/basic.c build/libai_meta.a -lz
 
 1. Full EXIF IFD rewrite (not only COM/XMP inject)
 2. C2PA JUMBF parse + optional signature verify via upstream SDK
-3. IPTC-IIM / Photoshop IRB blocks
+3. Optional shared library install alongside the static archive (`make shared`)
