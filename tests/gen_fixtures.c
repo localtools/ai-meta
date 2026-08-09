@@ -165,6 +165,58 @@ int main(int argc, char **argv) {
     ai_meta_buffer_free(out);
     out = NULL;
 
+    /* JPEG with Photoshop APP13 / IPTC Caption mentioning Firefly */
+    {
+        const char *caption = "Generated with Adobe Firefly";
+        size_t cap_len = strlen(caption);
+        size_t iptc_len = 5 + cap_len; /* 1C 02 78 len2 + data */
+        /* 8BIM + id + name(empty=0 + pad) + size4 + iptc + pad */
+        size_t irb_body = 4 + 2 + 2 + 4 + iptc_len + (iptc_len & 1);
+        size_t app_payload = 14 + irb_body; /* Photoshop 3.0\0 + IRB */
+        size_t seglen = 2 + app_payload;
+        size_t jpeg_len = 2 + 2 + seglen + 2; /* SOI APP13 EOI */
+        uint8_t *jpg = (uint8_t *)malloc(jpeg_len);
+        if (!jpg)
+            return 1;
+        size_t w = 0;
+        jpg[w++] = 0xFF;
+        jpg[w++] = 0xD8;
+        jpg[w++] = 0xFF;
+        jpg[w++] = 0xED;
+        jpg[w++] = (uint8_t)(seglen >> 8);
+        jpg[w++] = (uint8_t)(seglen & 0xFF);
+        memcpy(jpg + w, "Photoshop 3.0", 13);
+        w += 13;
+        jpg[w++] = 0;
+        memcpy(jpg + w, "8BIM", 4);
+        w += 4;
+        jpg[w++] = 0x04;
+        jpg[w++] = 0x04; /* IPTC-NAA */
+        jpg[w++] = 0;     /* empty name */
+        jpg[w++] = 0;     /* pad */
+        jpg[w++] = (uint8_t)(iptc_len >> 24);
+        jpg[w++] = (uint8_t)(iptc_len >> 16);
+        jpg[w++] = (uint8_t)(iptc_len >> 8);
+        jpg[w++] = (uint8_t)iptc_len;
+        jpg[w++] = 0x1C;
+        jpg[w++] = 2;
+        jpg[w++] = 120; /* Caption */
+        jpg[w++] = (uint8_t)(cap_len >> 8);
+        jpg[w++] = (uint8_t)(cap_len & 0xFF);
+        memcpy(jpg + w, caption, cap_len);
+        w += cap_len;
+        if (iptc_len & 1)
+            jpg[w++] = 0;
+        jpg[w++] = 0xFF;
+        jpg[w++] = 0xD9;
+        if (path_join(path, sizeof(path), dir, "iptc_ai.jpg") || write_bin(path, jpg, w)) {
+            free(jpg);
+            fprintf(stderr, "iptc_ai.jpg failed\n");
+            return 1;
+        }
+        free(jpg);
+    }
+
     if (path_join(path, sizeof(path), dir, "clean.webp") ||
         write_bin(path, MINI_WEBP, sizeof(MINI_WEBP))) {
         perror("clean.webp");
