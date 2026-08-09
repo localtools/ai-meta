@@ -108,14 +108,9 @@ ai_meta_err ai_meta_jpeg_extract(const uint8_t *data, size_t len, ai_meta_info *
             if (is_exif_app1(payload, plen)) {
                 (void)ai_meta_exif_extract(payload, plen, info);
             } else if (is_xmp_app1(payload, plen)) {
-                info->schemes |= AI_META_SCHEME_XMP;
                 const char *xmp = (const char *)(payload + 29);
                 size_t xlen = plen > 29 ? plen - 29 : 0;
-                (void)ai_meta_info_add_field(info, "XMP", xmp, xlen, AI_META_SCHEME_XMP);
-                if (ai_meta_xmp_looks_ai(xmp, xlen)) {
-                    info->likely_ai = 1;
-                    info->schemes |= AI_META_SCHEME_UNKNOWN_AI;
-                }
+                (void)ai_meta_xmp_extract_fields(info, xmp, xlen);
             }
         }
         if (marker == 0xEB && plen >= 4 &&
