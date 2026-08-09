@@ -143,6 +143,39 @@ static void test_png_ztxt(void) {
     free(buf);
 }
 
+static void test_jpeg_iptc(void) {
+    size_t len = 0;
+    uint8_t *buf = slurp("tests/fixtures/iptc_ai.jpg", &len);
+    expect(buf != NULL, "load iptc_ai.jpg");
+    if (!buf)
+        return;
+    ai_meta_scan_result scan;
+    expect(ai_meta_scan(buf, len, &scan) == AI_META_OK, "scan iptc");
+    expect((scan.schemes & AI_META_SCHEME_IPTC) != 0, "has iptc");
+    expect(scan.likely_ai == 1, "iptc likely ai");
+    ai_meta_info *info = NULL;
+    expect(ai_meta_extract(buf, len, &info) == AI_META_OK, "extract iptc");
+    int found = 0;
+    if (info) {
+        for (size_t i = 0; i < info->field_count; i++) {
+            if (strcmp(info->fields[i].key, "IPTC:Caption") == 0)
+                found = 1;
+        }
+    }
+    expect(found, "IPTC caption");
+    uint8_t *out = NULL;
+    size_t olen = 0;
+    expect(ai_meta_strip(buf, len, AI_META_FLAG_STRIP_IPTC | AI_META_FLAG_KEEP_COLOR_PROFILE, &out,
+                         &olen) == AI_META_OK,
+           "strip iptc");
+    ai_meta_scan_result after;
+    expect(ai_meta_scan(out, olen, &after) == AI_META_OK, "scan after iptc strip");
+    expect((after.schemes & AI_META_SCHEME_IPTC) == 0, "iptc removed");
+    ai_meta_info_free(info);
+    ai_meta_buffer_free(out);
+    free(buf);
+}
+
 static void test_jpeg_com(void) {
     size_t len = 0;
     uint8_t *buf = slurp("tests/fixtures/ai_com.jpg", &len);
@@ -192,6 +225,29 @@ static void test_webp_xmp(void) {
     free(buf);
 }
 
+static void test_truncation_smoke(void) {
+    size_t len = 0;
+    uint8_t *buf = slurp("tests/fixtures/sd_parameters.png", &len);
+    expect(buf != NULL, "load for truncation smoke");
+    if (!buf)
+        return;
+    /* Prefixes of a valid PNG must not crash. */
+    for (size_t n = 0; n <= len && n < 80; n++) {
+        ai_meta_scan_result scan;
+        memset(&scan, 0, sizeof(scan));
+        (void)ai_meta_scan(buf, n, &scan);
+        ai_meta_info *info = NULL;
+        (void)ai_meta_extract(buf, n, &info);
+        ai_meta_info_free(info);
+        uint8_t *out = NULL;
+        size_t olen = 0;
+        (void)ai_meta_strip(buf, n, AI_META_FLAG_STRIP_ALL_AI, &out, &olen);
+        ai_meta_buffer_free(out);
+    }
+    free(buf);
+    expect(1, "truncation smoke completed");
+}
+
 static void test_truncated(void) {
     size_t len = 0;
     uint8_t *buf = slurp("tests/fixtures/truncated.png", &len);
@@ -235,8 +291,10 @@ int main(void) {
     test_png_ztxt();
     test_png_keep_non_ai();
     test_jpeg_com();
+    test_jpeg_iptc();
     test_webp_xmp();
     test_truncated();
+    test_truncation_smoke();
     test_roundtrip_write();
     if (failures) {
         fprintf(stderr, "%d failure(s)\n", failures);
