@@ -15,7 +15,9 @@ LIB_SRCS = \
 
 LIB_OBJS = $(LIB_SRCS:.c=.o)
 
-.PHONY: all clean test shared static cli fixtures
+PREFIX ?= /usr/local
+
+.PHONY: all clean test shared static cli fixtures install uninstall
 
 all: static cli test
 
@@ -55,7 +57,24 @@ build/test_ai_meta: tests/test_ai_meta.c build/libai_meta.a | build
 test: fixtures build/test_ai_meta
 	./build/test_ai_meta
 
+build/ai_meta.pc: ai_meta.pc.in | build
+	sed 's|@PREFIX@|$(PREFIX)|g' $< > $@
+
+install: static cli build/ai_meta.pc
+	install -d $(DESTDIR)$(PREFIX)/include $(DESTDIR)$(PREFIX)/lib \
+		$(DESTDIR)$(PREFIX)/lib/pkgconfig $(DESTDIR)$(PREFIX)/bin
+	install -m 644 include/ai_meta.h $(DESTDIR)$(PREFIX)/include/
+	install -m 644 build/libai_meta.a $(DESTDIR)$(PREFIX)/lib/
+	install -m 644 build/ai_meta.pc $(DESTDIR)$(PREFIX)/lib/pkgconfig/
+	install -m 755 build/ai_meta $(DESTDIR)$(PREFIX)/bin/
+
+uninstall:
+	rm -f $(DESTDIR)$(PREFIX)/include/ai_meta.h \
+		$(DESTDIR)$(PREFIX)/lib/libai_meta.a \
+		$(DESTDIR)$(PREFIX)/lib/pkgconfig/ai_meta.pc \
+		$(DESTDIR)$(PREFIX)/bin/ai_meta
+
 clean:
 	rm -f src/*.o build/libai_meta.a build/libai_meta.so build/libai_meta.dylib \
-		build/ai_meta build/test_ai_meta build/gen_fixtures
+		build/ai_meta build/test_ai_meta build/gen_fixtures build/ai_meta.pc
 	rm -rf tests/fixtures
