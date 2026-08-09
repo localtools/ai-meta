@@ -38,9 +38,9 @@ static void print_schemes(unsigned s) {
     if (s & AI_META_SCHEME_XMP)
         printf("  XMP\n");
     if (s & AI_META_SCHEME_IPTC)
-        printf("  IPTC (reserved)\n");
+        printf("  IPTC\n");
     if (s & AI_META_SCHEME_C2PA)
-        printf("  C2PA (stub/detect-only)\n");
+        printf("  C2PA (detect-only)\n");
     if (s & AI_META_SCHEME_UNKNOWN_AI)
         printf("  UNKNOWN_AI_HEURISTIC\n");
 }
