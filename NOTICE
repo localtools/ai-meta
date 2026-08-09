@@ -1,0 +1,11 @@
+ai_meta
+Copyright (c) 2026 Local Tools and ai_meta contributors
+
+This product is licensed under the MIT License. See the LICENSE file for the
+full license text.
+
+Third-party dependencies (linked at build time, not vendored in this tree):
+
+  zlib — https://zlib.net/
+  Copyright (C) 1995-2024 Jean-loup Gailly and Mark Adler
+  zlib License: https://zlib.net/zlib_license.html
