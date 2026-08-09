@@ -59,6 +59,8 @@ ai_meta_buffer_free(out);
 make          # static lib, CLI, fixtures, tests
 make cli      # build/ai_meta
 make test
+sudo make install   # PREFIX=/usr/local (header, lib, pkg-config, CLI)
+# pkg-config --libs --cflags ai_meta
 ```
 
 **C11** + **zlib** (for PNG `zTXt` / compressed `iTXt`). Cross-platform (Linux/macOS/Windows with a C11 toolchain). Ships as **static** (`build/libai_meta.a`) and optional shared targets.
