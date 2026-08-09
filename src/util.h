@@ -26,6 +26,8 @@ ai_meta_err ai_meta_write_file_bytes(const char *path, const uint8_t *data, size
 int ai_meta_key_looks_ai(const char *key);
 int ai_meta_value_looks_ai(const char *value);
 int ai_meta_xmp_looks_ai(const char *xmp, size_t len);
+/* Pull common AI-related XMP element values into discrete fields. */
+ai_meta_err ai_meta_xmp_extract_fields(ai_meta_info *info, const char *xmp, size_t len);
 
 ai_meta_err ai_meta_info_create(ai_meta_info **out);
 ai_meta_err ai_meta_info_add_field(ai_meta_info *info, const char *key, const char *value,
