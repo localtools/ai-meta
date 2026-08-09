@@ -1,20 +1,12 @@
 /**
  * ai_meta — detect, extract, strip, and write AI-generation metadata in images.
  *
- * Supported schemes (MVP):
- *   - PNG tEXt / iTXt / zTXt (Stable Diffusion parameters, etc.)
- *   - Basic EXIF (Software, UserComment, ImageDescription, Artist)
- *   - Basic XMP (keyword / property scan for known AI markers)
+ * SPDX-License-Identifier: MIT
  *
- * Stretch (stubbed API surface, not fully implemented):
- *   - C2PA manifests (requires signature/manifest stack)
- *   - IPTC (newsroom provenance)
- *
+ * Schemes: PNG tEXt/iTXt/zTXt, EXIF, XMP, IPTC (JPEG), C2PA (detect/strip/hints).
  * Formats: PNG, JPEG, WebP.
- *
  * Scope: declared metadata only — no pixel-based AI detection.
- *
- * License: MIT
+ * C2PA signatures are not cryptographically verified in this version.
  */
 #ifndef AI_META_H
 #define AI_META_H
