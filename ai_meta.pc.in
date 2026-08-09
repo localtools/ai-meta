@@ -1,0 +1,10 @@
+prefix=@PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: ai_meta
+Description: Detect, extract, strip, and write AI-generation metadata in images
+Version: 0.1.0
+Libs: -L${libdir} -lai_meta -lz
+Cflags: -I${includedir}
