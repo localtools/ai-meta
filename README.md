@@ -15,7 +15,7 @@ This library only reads/writes **declared metadata**. It does **not** analyze pi
 | PNG `tEXt` / `iTXt` / `zTXt` | Supported | Stable Diffusion `parameters`, prompts, etc. `zTXt`/compressed `iTXt` inflated via zlib; SD blobs expanded into discrete fields |
 | EXIF (basic) | Supported | Software, UserComment, ImageDescription, Artist, Make/Model; JPEG APP1 + PNG `eXIf` + WebP `EXIF` |
 | XMP (basic) | Supported | Presence + AI-marker heuristics (Firefly, generative DigitalSourceType, CreatorTool, …) |
-| C2PA | Detect-only stub | JPEG APP11/JUMBF `c2pa` marker; full manifest/signature verification is a stretch goal |
+| C2PA | Detect / strip / hints | PNG `caBX` JUMBF + JPEG APP11; generator/DigitalSourceType string hints; no signature verify yet |
 | IPTC | Supported (JPEG) | Photoshop APP13 IRB resource `0x0404`; Keywords/Caption/Headline/Byline |
 
 ### Formats
