@@ -64,12 +64,7 @@ static ai_meta_err walk_chunks(const uint8_t *data, size_t len, ai_meta_scan_res
                 }
             }
             if (info) {
-                info->schemes |= AI_META_SCHEME_XMP;
-                (void)ai_meta_info_add_field(info, "XMP", xmp, clen, AI_META_SCHEME_XMP);
-                if (ai_meta_xmp_looks_ai(xmp, clen)) {
-                    info->likely_ai = 1;
-                    info->schemes |= AI_META_SCHEME_UNKNOWN_AI;
-                }
+                (void)ai_meta_xmp_extract_fields(info, xmp, clen);
             }
             if (do_strip && (strip_flags & AI_META_FLAG_STRIP_XMP))
                 drop = 1;
