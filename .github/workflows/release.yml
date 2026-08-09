@@ -1,0 +1,85 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.asset_os }}-${{ matrix.asset_arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_os: linux
+            asset_arch: x86_64
+          - os: macos-14
+            asset_os: darwin
+            asset_arch: arm64
+          - os: macos-13
+            asset_os: darwin
+            asset_arch: x86_64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zlib (Ubuntu)
+        if: runner.os == "Linux"
+        run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
+
+      - name: Build, test, and package
+        run: |
+          make clean
+          make test
+          make dist CFLAGS="-std=c11 -Wall -Wextra -Wpedantic -O2"
+          ls -la dist/
+
+      - name: Verify package layout
+        run: |
+          tarball=$(ls dist/ai_meta-*-${{ matrix.asset_os }}-${{ matrix.asset_arch }}.tar.gz)
+          echo "tarball=$tarball"
+          tar -tzf "$tarball" | head -40
+          case "$tarball" in
+            *-${{ matrix.asset_os }}-${{ matrix.asset_arch }}.tar.gz) ;;
+            *) echo "Unexpected asset name: $tarball" >&2; exit 1 ;;
+          esac
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai_meta-${{ matrix.asset_os }}-${{ matrix.asset_arch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release assets
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Prepare checksums
+        working-directory: release-assets
+        run: |
+          ls -la
+          sha256sum ai_meta-*.tar.gz | tee SHA256SUMS
+
+      - name: Upload assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/ai_meta-*.tar.gz
+            release-assets/SHA256SUMS
+          generate_release_notes: true
+          fail_on_unmatched_files: true
