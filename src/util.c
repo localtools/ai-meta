@@ -214,6 +214,98 @@ int ai_meta_xmp_looks_ai(const char *xmp, size_t len) {
     return hit;
 }
 
+static int extract_xml_tag(const char *xml, const char *local_name, char *out, size_t out_sz) {
+    /* Match <prefix:local>value</prefix:local> or <local>value</local> */
+    char open1[96], open2[80];
+    snprintf(open1, sizeof(open1), ":%s>", local_name);
+    snprintf(open2, sizeof(open2), "<%s>", local_name);
+    const char *p = strstr(xml, open1);
+    if (p) {
+        p += strlen(open1);
+    } else {
+        p = strstr(xml, open2);
+        if (!p)
+            return 0;
+        p += strlen(open2);
+    }
+    const char *end = strchr(p, '<');
+    if (!end || end <= p)
+        return 0;
+    size_t n = (size_t)(end - p);
+    if (n >= out_sz)
+        n = out_sz - 1;
+    memcpy(out, p, n);
+    out[n] = '\0';
+    return n > 0;
+}
+
+ai_meta_err ai_meta_xmp_extract_fields(ai_meta_info *info, const char *xmp, size_t len) {
+    if (!info || !xmp || len == 0)
+        return AI_META_ERR_INVALID_ARG;
+    char *tmp = ai_meta_strndup(xmp, len);
+    if (!tmp)
+        return AI_META_ERR_NOMEM;
+
+    static const char *tags[] = {"CreatorTool", "DigitalSourceType", "Credit", "CreditLine",
+                                 "claim_generator", "SoftwareAgent", "History", NULL};
+    int added = 0;
+    for (int i = 0; tags[i]; i++) {
+        char val[512];
+        if (extract_xml_tag(tmp, tags[i], val, sizeof(val))) {
+            (void)ai_meta_info_add_field(info, tags[i], val, strlen(val), AI_META_SCHEME_XMP);
+            added = 1;
+        }
+    }
+    /* Custom ai_meta:* tags (skip names already pulled above). */
+    const char *p = tmp;
+    while ((p = strstr(p, "<ai_meta:")) != NULL) {
+        p += 9;
+        const char *gt = strchr(p, '>');
+        if (!gt)
+            break;
+        size_t klen = (size_t)(gt - p);
+        if (klen == 0 || klen > 64 || memchr(p, '/', klen)) {
+            p = gt + 1;
+            continue;
+        }
+        char key[65];
+        memcpy(key, p, klen);
+        key[klen] = '\0';
+        int known = 0;
+        for (int i = 0; tags[i]; i++) {
+            if (strcmp(key, tags[i]) == 0) {
+                known = 1;
+                break;
+            }
+        }
+        const char *vstart = gt + 1;
+        const char *vend = strchr(vstart, '<');
+        if (!vend) {
+            p = vstart;
+            continue;
+        }
+        if (!known) {
+            (void)ai_meta_info_add_field(info, key, vstart, (size_t)(vend - vstart),
+                                         AI_META_SCHEME_XMP);
+            added = 1;
+        }
+        p = vend;
+    }
+
+    if (!added) {
+        size_t preview = len > 240 ? 240 : len;
+        (void)ai_meta_info_add_field(info, "XMP", tmp, preview, AI_META_SCHEME_XMP);
+    } else {
+        info->schemes |= AI_META_SCHEME_XMP;
+        if (ai_meta_xmp_looks_ai(tmp, len)) {
+            info->likely_ai = 1;
+            info->schemes |= AI_META_SCHEME_UNKNOWN_AI;
+        }
+    }
+    free(tmp);
+    return AI_META_OK;
+}
+
 ai_meta_err ai_meta_info_create(ai_meta_info **out) {
     if (!out)
         return AI_META_ERR_INVALID_ARG;
