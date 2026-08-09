@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
-project(ai_meta C)
+project(ai_meta
+  VERSION 0.1.0
+  DESCRIPTION "Detect, extract, strip, and write AI-generation metadata in images"
+  HOMEPAGE_URL "https://github.com/localtools/ai-meta"
+  LANGUAGES C
+)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
