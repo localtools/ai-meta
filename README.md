@@ -51,6 +51,22 @@ Artifacts land in `build/`:
 | `build/libai_meta.dylib` / `.so` | Shared library (`make shared`) |
 | `build/ai_meta` | Command-line tool |
 
+### Release package (local)
+
+```bash
+make dist    # or: make package
+```
+
+Creates `dist/ai_meta-<version>-<os>-<arch>.tar.gz` with headers, static/shared libraries, CLI, relocatable `pkg-config` file, and license docs.
+
+GitHub Releases are built automatically when you push a version tag (`v*`). Assets include Linux x86_64, macOS arm64, and macOS x86_64 tarballs plus `SHA256SUMS`.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+# → Actions workflow "release" builds, tests, and attaches artifacts
+```
+
 ### Install (system-wide)
 
 ```bash
