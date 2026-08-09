@@ -177,6 +177,18 @@ static void test_webp_xmp(void) {
     expect(scan.format == AI_META_FMT_WEBP, "webp fmt");
     expect((scan.schemes & AI_META_SCHEME_XMP) != 0, "has xmp");
     expect(scan.likely_ai == 1, "webp likely ai");
+    ai_meta_info *info = NULL;
+    expect(ai_meta_extract(buf, len, &info) == AI_META_OK, "extract webp xmp");
+    int found = 0;
+    if (info) {
+        for (size_t i = 0; i < info->field_count; i++) {
+            if (strcmp(info->fields[i].key, "CreatorTool") == 0 &&
+                strstr(info->fields[i].value, "Firefly"))
+                found = 1;
+        }
+    }
+    expect(found, "CreatorTool from XMP");
+    ai_meta_info_free(info);
     free(buf);
 }
 
