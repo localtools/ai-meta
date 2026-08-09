@@ -40,7 +40,7 @@ static void print_schemes(unsigned s) {
     if (s & AI_META_SCHEME_IPTC)
         printf("  IPTC\n");
     if (s & AI_META_SCHEME_C2PA)
-        printf("  C2PA (detect-only)\n");
+        printf("  C2PA\n");
     if (s & AI_META_SCHEME_UNKNOWN_AI)
         printf("  UNKNOWN_AI_HEURISTIC\n");
 }
