@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `make dist` / `make package` — portable tarball (`include/`, `lib/`, `bin/`, pkg-config, license)
+- GitHub Actions `release` workflow — build/test on Linux + macOS and attach assets to tag releases (`v*`)
+- OS-aware `make shared` (`.so` on Linux, `.dylib` on macOS with `@rpath`)
+
 ### Documentation
 
 - Expanded README for FOSS consumers (install, CLI, API, layout)
 - Added CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, and this changelog
+- Documented release packaging and GitHub Release assets
 
 ## [0.1.0] — 2026-08-09
 
