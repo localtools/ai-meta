@@ -1,0 +1,8 @@
+build/
+src/*.o
+tests/fixtures/
+examples/basic
+*.a
+*.so
+*.dylib
+.DS_Store
