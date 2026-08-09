@@ -42,6 +42,45 @@ static void consider_text(ai_meta_scan_result *out, const char *key, const char 
     }
 }
 
+static int payload_has_c2pa(const uint8_t *payload, size_t clen) {
+    if (!payload || clen < 4)
+        return 0;
+    if (ai_meta_memmem_find(payload, clen > 4096 ? 4096 : clen, (const uint8_t *)"c2pa", 4) >= 0)
+        return 1;
+    if (ai_meta_memmem_find(payload, clen > 4096 ? 4096 : clen, (const uint8_t *)"jumb", 4) >= 0)
+        return 1;
+    return 0;
+}
+
+/* Best-effort string pulls from C2PA JUMBF / CBOR-ish blobs in caBX. */
+static void extract_c2pa_hints(ai_meta_info *info, const uint8_t *payload, size_t clen) {
+    if (!info || !payload || clen == 0)
+        return;
+    info->schemes |= AI_META_SCHEME_C2PA;
+    info->likely_ai = 1;
+    info->schemes |= AI_META_SCHEME_UNKNOWN_AI;
+
+    static const struct {
+        const char *needle;
+        const char *key;
+    } hints[] = {{"OpenAI", "C2PA:generator"},
+                 {"Google", "C2PA:generator"},
+                 {"Adobe", "C2PA:generator"},
+                 {"Firefly", "C2PA:generator"},
+                 {"trainedAlgorithmicMedia", "C2PA:DigitalSourceType"},
+                 {"compositeWithTrainedAlgorithmicMedia", "C2PA:DigitalSourceType"},
+                 {NULL, NULL}};
+    size_t scan_len = clen > 65536 ? 65536 : clen;
+    for (int i = 0; hints[i].needle; i++) {
+        size_t nlen = strlen(hints[i].needle);
+        if (ai_meta_memmem_find(payload, scan_len, (const uint8_t *)hints[i].needle, nlen) >= 0)
+            (void)ai_meta_info_add_field(info, hints[i].key, hints[i].needle, nlen,
+                                         AI_META_SCHEME_C2PA);
+    }
+    (void)ai_meta_info_add_field(info, "C2PA", "[PNG caBX/JUMBF manifest present]", 33,
+                                 AI_META_SCHEME_C2PA);
+}
+
 ai_meta_err ai_meta_png_scan(const uint8_t *data, size_t len, ai_meta_scan_result *out) {
     if (!ai_meta_is_png(data, len) || !out)
         return AI_META_ERR_FORMAT;
@@ -70,6 +109,13 @@ ai_meta_err ai_meta_png_scan(const uint8_t *data, size_t len, ai_meta_scan_resul
         /* Heuristic: eXIf chunk */
         if (chunk_is(type, "eXIf"))
             out->schemes |= AI_META_SCHEME_EXIF;
+        /* C2PA content credentials live in caBX (Content Authenticity Box / JUMBF). */
+        if ((chunk_is(type, "caBX") || chunk_is(type, "c2pa")) &&
+            payload_has_c2pa(data + payload_off, clen)) {
+            out->schemes |= AI_META_SCHEME_C2PA;
+            out->likely_ai = 1;
+            out->schemes |= AI_META_SCHEME_UNKNOWN_AI;
+        }
         off = payload_off + (size_t)clen + 4;
         if (chunk_is(type, "IEND"))
             break;
@@ -174,6 +220,10 @@ ai_meta_err ai_meta_png_extract(const uint8_t *data, size_t len, ai_meta_info *i
         if (chunk_is(type, "eXIf") && clen > 0) {
             (void)ai_meta_exif_extract(data + payload_off, clen, info);
         }
+        if ((chunk_is(type, "caBX") || chunk_is(type, "c2pa")) &&
+            payload_has_c2pa(data + payload_off, clen)) {
+            extract_c2pa_hints(info, data + payload_off, clen);
+        }
         off = payload_off + (size_t)clen + 4;
         if (chunk_is(type, "IEND"))
             break;
@@ -230,6 +280,9 @@ ai_meta_err ai_meta_png_strip(const uint8_t *data, size_t len, unsigned flags,
             free(tmp);
         }
         if (chunk_is(type, "eXIf") && (flags & AI_META_FLAG_STRIP_EXIF))
+            drop = 1;
+        if ((chunk_is(type, "caBX") || chunk_is(type, "c2pa")) &&
+            (flags & AI_META_FLAG_STRIP_C2PA))
             drop = 1;
         /* Never drop IHDR/IDAT/PLTE/IEND/iCCP when keeping color profile */
         if (chunk_is(type, "iCCP") && (flags & AI_META_FLAG_KEEP_COLOR_PROFILE))
