@@ -17,9 +17,9 @@ LIB_OBJS = $(LIB_SRCS:.c=.o)
 
 PREFIX ?= /usr/local
 
-VERSION_MAJOR := $(shell sed -n 's/^#define AI_META_VERSION_MAJOR //p' include/ai_meta.h)
-VERSION_MINOR := $(shell sed -n 's/^#define AI_META_VERSION_MINOR //p' include/ai_meta.h)
-VERSION_PATCH := $(shell sed -n 's/^#define AI_META_VERSION_PATCH //p' include/ai_meta.h)
+VERSION_MAJOR := $(shell sed -n 's/^\#define AI_META_VERSION_MAJOR //p' include/ai_meta.h)
+VERSION_MINOR := $(shell sed -n 's/^\#define AI_META_VERSION_MINOR //p' include/ai_meta.h)
+VERSION_PATCH := $(shell sed -n 's/^\#define AI_META_VERSION_PATCH //p' include/ai_meta.h)
 VERSION       := $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 
 UNAME_S := $(shell uname -s)
