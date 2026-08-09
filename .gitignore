@@ -1,9 +1,20 @@
+# Build outputs
 build/
 src/*.o
-tests/fixtures/
-examples/basic
+*.o
 *.a
 *.so
 *.dylib
-.DS_Store
+*.dll
+*.exe
+
+# Generated / local
+tests/fixtures/
+examples/basic
 temp/
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
+cmake-build-*/
