@@ -59,7 +59,7 @@ make dist    # or: make package
 
 Creates `dist/ai_meta-<version>-<os>-<arch>.tar.gz` with headers, static/shared libraries, CLI, relocatable `pkg-config` file, and license docs.
 
-GitHub Releases are built automatically when you push a version tag (`v*`). Assets include Linux x86_64, macOS arm64, and macOS x86_64 tarballs plus `SHA256SUMS`.
+GitHub Releases are built automatically when you push a version tag (`v*`). Assets include Linux x86_64 and macOS arm64 tarballs plus `SHA256SUMS`.
 
 ```bash
 git tag v0.1.0

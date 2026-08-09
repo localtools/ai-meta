@@ -23,9 +23,6 @@ jobs:
           - os: macos-14
             asset_os: darwin
             asset_arch: arm64
-          - os: macos-13
-            asset_os: darwin
-            asset_arch: x86_64
     steps:
       - uses: actions/checkout@v4
 
