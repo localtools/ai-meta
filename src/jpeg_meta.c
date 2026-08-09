@@ -10,6 +10,85 @@ int ai_meta_is_jpeg(const uint8_t *data, size_t len) {
     return data && len >= 4 && data[0] == 0xFF && data[1] == 0xD8;
 }
 
+static int is_photoshop_app13(const uint8_t *seg, size_t seglen) {
+    return seglen >= 14 && memcmp(seg, "Photoshop 3.0", 13) == 0 && seg[13] == 0;
+}
+
+/* Walk IPTC-IIM inside Photoshop IRB 8BIM resource 0x0404. */
+static void iptc_from_irb(const uint8_t *payload, size_t plen, ai_meta_scan_result *scan,
+                          ai_meta_info *info) {
+    if (plen < 14 || !is_photoshop_app13(payload, plen))
+        return;
+    size_t off = 14;
+    while (off + 12 <= plen) {
+        if (memcmp(payload + off, "8BIM", 4) != 0)
+            break;
+        uint16_t res_id = ai_meta_read_be16(payload + off + 4);
+        size_t name_len = payload[off + 6];
+        size_t name_total = 1 + name_len + ((name_len + 1) & 1u); /* pad to even */
+        size_t data_off = off + 4 + 2 + name_total;
+        if (data_off + 4 > plen)
+            break;
+        uint32_t size = ai_meta_read_be32(payload + data_off);
+        size_t data_start = data_off + 4;
+        size_t data_end = data_start + size;
+        if (data_end > plen)
+            break;
+        if (res_id == 0x0404) { /* IPTC-NAA */
+            if (scan)
+                scan->schemes |= AI_META_SCHEME_IPTC;
+            size_t p = data_start;
+            while (p + 5 <= data_end) {
+                if (payload[p] != 0x1C) {
+                    p++;
+                    continue;
+                }
+                uint8_t rec = payload[p + 1];
+                uint8_t ds = payload[p + 2];
+                uint16_t dlen = ai_meta_read_be16(payload + p + 3);
+                p += 5;
+                if (p + dlen > data_end)
+                    break;
+                if (rec == 2 && dlen > 0) {
+                    const char *name = NULL;
+                    if (ds == 25)
+                        name = "IPTC:Keywords";
+                    else if (ds == 120)
+                        name = "IPTC:Caption";
+                    else if (ds == 105)
+                        name = "IPTC:Headline";
+                    else if (ds == 80)
+                        name = "IPTC:Byline";
+                    if (name || scan) {
+                        char *tmp = ai_meta_strndup((const char *)(payload + p), dlen);
+                        if (tmp) {
+                            if (name && info)
+                                (void)ai_meta_info_add_field(info, name, tmp, dlen,
+                                                             AI_META_SCHEME_IPTC);
+                            if (ai_meta_value_looks_ai(tmp)) {
+                                if (scan) {
+                                    scan->likely_ai = 1;
+                                    scan->schemes |= AI_META_SCHEME_UNKNOWN_AI;
+                                }
+                                if (info) {
+                                    info->likely_ai = 1;
+                                    info->schemes |= AI_META_SCHEME_UNKNOWN_AI;
+                                }
+                            }
+                            free(tmp);
+                        }
+                    }
+                }
+                p += dlen;
+            }
+            if (info)
+                info->schemes |= AI_META_SCHEME_IPTC;
+        }
+        size_t padded = size + (size & 1u);
+        off = data_start + padded;
+    }
+}
+
 static int is_xmp_app1(const uint8_t *seg, size_t seglen) {
     /* Adobe XMP identifier is 29 bytes including trailing NUL. */
     if (seglen < 29)
@@ -75,6 +154,8 @@ ai_meta_err ai_meta_jpeg_scan(const uint8_t *data, size_t len, ai_meta_scan_resu
             }
             free(tmp);
         }
+        if (marker == 0xED) /* APP13 Photoshop IRB / IPTC */
+            iptc_from_irb(payload, plen, out, NULL);
         i += seglen;
     }
     return AI_META_OK;
@@ -145,6 +226,8 @@ ai_meta_err ai_meta_jpeg_extract(const uint8_t *data, size_t len, ai_meta_info *
                 free(tmp);
             }
         }
+        if (marker == 0xED)
+            iptc_from_irb(payload, plen, NULL, info);
         i += seglen;
     }
     return AI_META_OK;
@@ -214,6 +297,9 @@ ai_meta_err ai_meta_jpeg_strip(const uint8_t *data, size_t len, unsigned flags,
                 drop = 1;
             free(tmp);
         }
+        if (marker == 0xED && (flags & AI_META_FLAG_STRIP_IPTC) &&
+            is_photoshop_app13(payload, plen))
+            drop = 1;
         /* APP2 ICC kept when KEEP_COLOR_PROFILE */
         if (marker == 0xE2 && (flags & AI_META_FLAG_KEEP_COLOR_PROFILE))
             drop = 0;
