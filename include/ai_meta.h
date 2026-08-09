@@ -49,8 +49,8 @@ typedef enum ai_meta_scheme {
     AI_META_SCHEME_PNG_TEXT = 1u << 0, /* tEXt / iTXt / zTXt */
     AI_META_SCHEME_EXIF = 1u << 1,
     AI_META_SCHEME_XMP = 1u << 2,
-    AI_META_SCHEME_IPTC = 1u << 3, /* reserved / future */
-    AI_META_SCHEME_C2PA = 1u << 4, /* reserved / future */
+    AI_META_SCHEME_IPTC = 1u << 3, /* JPEG APP13 Photoshop IRB / IPTC-IIM */
+    AI_META_SCHEME_C2PA = 1u << 4, /* detect-only stub */
     AI_META_SCHEME_UNKNOWN_AI = 1u << 5 /* heuristic AI-looking keys */
 } ai_meta_scheme;
 
